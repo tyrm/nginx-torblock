@@ -1,9 +1,24 @@
 #!/usr/bin/env python
 
+import os
 import requests
 
-def GetTorList():
-    r = requests.get('https://check.torproject.org/torbulkexitlist')
+def GetConfig():
+    tor_url = 'https://check.torproject.org/torbulkexitlist'
+    tor_url_env = os.environ.get('TOR_URL')
+    if tor_url_env != None:
+        tor_url = tor_url_env
+
+    file_path = '/etc/nginx/torblock.conf'
+    file_path_env = os.environ.get('FILE_PATH')
+    if file_path_env != None:
+        file_path = file_path_env
+
+    return tor_url, file_path
+
+
+def GetTorList(tor_url):
+    r = requests.get(tor_url)
     if r.status_code != 200:
         raise Exception("can't get list from tor website")
 
@@ -16,7 +31,9 @@ def GetTorList():
     return ip_list
 
 def main():
-    ip_list = GetTorList()
+    tor_url, file_path = GetConfig()
+
+    ip_list = GetTorList(tor_url)
     for ip_address in ip_list:
         print(f"ip: {ip_address}")
 
