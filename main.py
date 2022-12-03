@@ -11,12 +11,17 @@ def GetConfig():
     if tor_url_env != None:
         tor_url = tor_url_env
 
-    file_path = '/etc/nginx/torblock.conf'
-    file_path_env = os.environ.get('FILE_PATH')
-    if file_path_env != None:
-        file_path = file_path_env
+    block_file_path = '/etc/nginx/torblock.conf'
+    block_file_path_env = os.environ.get('BLOCK_FILE_PATH')
+    if block_file_path_env != None:
+        block_file_path = block_file_path_env
 
-    return tor_url, file_path
+    map_file_path = '/etc/nginx/istor.conf'
+    map_file_path_env = os.environ.get('MAP_FILE_PATH')
+    if map_file_path_env != None:
+        map_file_path = map_file_path_env
+
+    return tor_url, block_file_path, map_file_path
 
 def GetTorList(tor_url):
     r = requests.get(tor_url)
@@ -31,7 +36,7 @@ def GetTorList(tor_url):
 
     return ip_list
 
-def WriteNginxConf(file_path, ip_list):
+def WriteBlockConf(file_path, ip_list):
     today = datetime.today()
     with open(file_path, "w") as block_file:
         block_file.write("# MANAGED FILE: changes will be overwritten!\n")
@@ -42,10 +47,24 @@ def WriteNginxConf(file_path, ip_list):
 
         block_file.write("\nallow all;\n")
 
+def WriteMapConf(file_path, ip_list):
+    today = datetime.today()
+    with open(file_path, "w") as block_file:
+        block_file.write("# MANAGED FILE: changes will be overwritten!\n")
+        block_file.write(f"# Tor block list. Generated: {today}\n\n")
+        block_file.write("map $remote_addr $is_tor {\n")
+
+        for ip_address in ip_list:
+            block_file.write(f"\t{ip_address}\tyes;\n")
+
+        block_file.write(f"\n\tdefault\tno;\n")
+        block_file.write("}\n")
+
 def main():
-    tor_url, file_path = GetConfig()
+    tor_url, block_file_path, map_file_path = GetConfig()
     ip_list = GetTorList(tor_url)
-    WriteNginxConf(file_path, ip_list)
+    WriteBlockConf(block_file_path, ip_list)
+    WriteMapConf(map_file_path, ip_list)
 
 if __name__ == '__main__':
     main()
